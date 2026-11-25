@@ -37,9 +37,9 @@ export function createApp() {
   const cookieName = config.isProd ? '__Host-sv.sid' : 'sv.sid';
   app.set('sessionCookieName', cookieName);
 
-  // A02: sin X-Powered-By; detras del proxy de la plataforma confiamos en 1 salto
+  // A02: sin X-Powered-By; se confia solo en los proxies conocidos de la plataforma (TRUST_PROXY_HOPS)
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
+  app.set('trust proxy', config.TRUST_PROXY_HOPS);
 
   app.use(pinoHttp({
     logger,
@@ -70,7 +70,7 @@ export function createApp() {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+        styleSrc: ["'self'"],
         imgSrc: ["'self'", 'data:'],
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],

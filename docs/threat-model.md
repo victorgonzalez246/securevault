@@ -37,7 +37,7 @@ flowchart LR
 | 4 | **T**ampering | Modificación de notas cifradas en la BD | AES-256-GCM con tag de 16 bytes + AAD ligado a dueño y registro | `src/crypto/aes.js` |
 | 5 | Tampering | CSRF (acciones en nombre del usuario) | Token CSRF en cabecera + verificación de `Origin` + SameSite=Strict | `src/middleware/security.js` |
 | 6 | Tampering | Asignación masiva (`"role":"admin"` al registrarse) | Esquemas zod `.strict()` | `src/schemas.js` |
-| 7 | Tampering | Dependencia comprometida | `package-lock.json`, `npm ci`, `npm audit`, Dependabot, SRI en CDN | `.github/` |
+| 7 | Tampering | Dependencia comprometida | `package-lock.json`, `npm ci`, `npm audit`, Dependabot, SRI (sha384) en JS/CSS | `.github/` |
 | 8 | **R**epudiation | Un usuario niega haber hecho algo | Bitácora de logins, accesos denegados, cambios de rol y revelación de datos | `src/services/audit.js` |
 | 9 | **I**nformation disclosure | IDOR: leer notas ajenas | `WHERE id = ? AND owner_id = ?` en todas las consultas; respuesta 404 | `src/routes/notes.js` |
 | 10 | Information disclosure | Robo de la base de datos | Notas/teléfono cifrados, contraseñas Argon2id, tokens como SHA-256; llaves fuera de la BD | `src/crypto/*` |

@@ -22,8 +22,9 @@ function check(category, test, pass, evidence) {
 class Client {
   cookies = new Map();
   csrf = null;
-  async req(method, path, body, { csrf = true, raw } = {}) {
+  async req(method, path, body, { csrf = true, raw, spoofIp } = {}) {
     const headers = { Origin: ORIGIN };
+    if (spoofIp) headers['X-Forwarded-For'] = spoofIp;
     if (this.cookies.size) headers.Cookie = [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
     if (method !== 'GET') {
       headers['Content-Type'] = 'application/json';
@@ -111,7 +112,8 @@ check('A01', 'Peticion sin token CSRF', noCsrf.status === 403, `${noCsrf.status}
 const xss = await A.req('POST', '/api/notes', { title: '<script>alert(1)</script>', content: '<img src=x onerror=alert(1)>' });
 check('A05', 'XSS: <script> se guarda como texto (React escapa; CSP bloquea inline)', xss.status === 201 && /application\/json/.test(xss.headers.get('content-type') ?? ''), `${xss.status} title=${xss.json?.note?.title}`);
 const sqliId = await A.req('GET', `/api/notes/${encodeURIComponent("1' OR '1'='1")}`);
-check('A05', "Inyeccion SQL en id de nota", sqliId.status === 400, `${sqliId.status} ${sqliId.text}`);
+// 400 = la app lo rechaza por validacion; 403 HTML = lo bloquea antes el WAF del proveedor (Cloudflare)
+check('A05', 'Inyeccion SQL en id de nota', sqliId.status === 400 || (sqliId.status === 403 && /<html/i.test(sqliId.text)), sqliId.status === 403 ? '403: bloqueado por el WAF de la plataforma antes de llegar a la app' : `${sqliId.status} ${sqliId.text}`);
 const mass = await new Client().init();
 const massReq = await mass.req('POST', '/api/auth/register', { email: `verify-x-${rnd()}@example.com`, name: 'x', password: password(), role: 'admin' });
 check('A01', 'Asignacion masiva ("role":"admin" al registrarse)', massReq.status === 400 || massReq.status === 429, `${massReq.status} ${massReq.text}`);
@@ -127,8 +129,9 @@ const attacker = await new Client().init();
 const sqliLogin = await attacker.req('POST', '/api/auth/login', { email: "' OR 1=1 --", password: "' OR 1=1 --" });
 check('A05', "' OR 1=1 -- en el login no autentica", sqliLogin.status === 401, `${sqliLogin.status} ${sqliLogin.text}`);
 const statuses = [];
-for (let i = 0; i < 6; i++) statuses.push((await attacker.req('POST', '/api/auth/login', { email: emailB, password: `Wrong#Pass${i}xx` })).status);
-check('A07', 'Fuerza bruta bloqueada con HTTP 429', statuses.includes(429) && statuses[0] === 401, statuses.join(', '));
+// El atacante ademas falsifica X-Forwarded-For con una IP distinta en cada intento para evadir el limite
+for (let i = 0; i < 6; i++) statuses.push((await attacker.req('POST', '/api/auth/login', { email: emailB, password: `Wrong#Pass${i}xx` }, { spoofIp: `203.0.113.${i + 1}` })).status);
+check('A07', 'Fuerza bruta bloqueada con HTTP 429 (aunque falsifique X-Forwarded-For)', statuses.includes(429) && statuses[0] === 401, statuses.join(', '));
 
 // --- Reporte ---
 const passed = results.filter((r) => r.pass).length;

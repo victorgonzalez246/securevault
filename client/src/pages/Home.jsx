@@ -1,31 +1,14 @@
-import { Link } from 'react-router';
+﻿import { Link } from 'react-router';
+import { useState } from 'react';
 import { useAuth } from '../auth.jsx';
-
-export default function Home() {
-  const { user } = useAuth();
-  return (
-    <>
-      <section className="hero">
-        <h1>Tus notas privadas, cifradas de verdad.</h1>
-        <p className="muted">
-          SecureVault guarda tus notas y datos personales con cifrado autenticado AES-256-GCM.
-          Ni siquiera quien tenga acceso a la base de datos puede leerlas.
-        </p>
-        {user ? (
-          <Link to="/notes" role="button">Ir a mis notas</Link>
-        ) : (
-          <div className="row">
-            <Link to="/register" role="button">Crear cuenta</Link>
-            <Link to="/login" role="button" className="secondary outline">Ya tengo cuenta</Link>
-          </div>
-        )}
-      </section>
-      <section className="features">
-        <article><h4>Cifrado AES-256-GCM</h4><p className="muted">IV unico por registro y deteccion de manipulacion.</p></article>
-        <article><h4>Argon2id</h4><p className="muted">Contrasenas con hash lento y sal; nunca se guardan en claro.</p></article>
-        <article><h4>Sesiones seguras</h4><p className="muted">Cookie HttpOnly, Secure y SameSite con expiracion.</p></article>
-        <article><h4>Bitacora</h4><p className="muted">Registro de accesos fallidos, denegados y cambios de rol.</p></article>
-      </section>
-    </>
-  );
+import Icon from '../Icon.jsx';
+export default function Home(){
+ const {user}=useAuth();const [preview,setPreview]=useState('notes');
+ return <>
+ <section className="hero"><div className="hero-copy"><span className="eyebrow"><Icon/>PRIVACIDAD POR DISEÑO · AES-256-GCM</span><h1>Tu vida digital.<br/>Una bóveda.<br/><span>Bajo tu control.</span></h1><p>Un espacio privado para tus notas y datos personales. Guarda lo importante con cifrado robusto y accede cuando lo necesites.</p><div className="row hero-actions"><Link to={user?'/notes':'/register'} role="button">{user?'Abrir mi bóveda':'Crear mi bóveda'}<Icon name="arrow"/></Link><Link to={user?'/notes':'/login'} role="button" className="outline">Abrir consola</Link></div><div className="hero-footnote"><Icon name="check"/>Notas cifradas <span>·</span>Verificación en dos pasos</div></div>
+ <div className="preview-window"><div className="window-bar"><span className="window-dots"><i/><i/><i/></span><span><Icon name="lock"/>Mi bóveda personal</span><span className="badge badge-ok">Vista previa</span></div><div className="preview-inner"><div className="row spread"><div><span className="overline">TU ESPACIO SEGURO</span><h3>Todo lo importante, aquí.</h3></div><span className="preview-shield"><Icon/></span></div><div className="segmented" aria-label="Vista previa"><button onClick={()=>setPreview('notes')} aria-pressed={preview==='notes'}><Icon name="note"/>Notas cifradas</button><button onClick={()=>setPreview('profile')} aria-pressed={preview==='profile'}><Icon name="user"/>Datos personales</button></div><div className="preview-cards">{(preview==='notes'?[['Nota privada','Ideas para el próximo proyecto','Un lugar seguro para tus próximas ideas.'],['Información sensible','Claves de recuperación','•••• •••• •••• ••••']]:[['Perfil personal','Tu información de contacto','Teléfono: ***-***-1234'],['Seguridad de la cuenta','Verificación en dos pasos','Una capa adicional de protección.']]).map(([tag,title,text])=><article key={title}><div className="row spread"><span className="overline">{tag}</span><Icon name="lock"/></div><h4>{title}</h4><p>{text}</p><span className="card-meta"><span className="status-dot"/>Protegido con cifrado</span></article>)}</div><div className="preview-status"><Icon/><span>Cifrado AES-256-GCM<strong>Protección en cada registro</strong></span><Icon name="check"/></div></div></div></section>
+ <div className="trust-strip"><span>SEGURIDAD EN CADA CAPA</span><strong><Icon name="lock"/>AES-256-GCM</strong><strong><Icon/>Argon2id</strong><strong><Icon name="user"/>Autenticación de dos pasos</strong><strong><Icon name="note"/>Registro de actividad</strong></div>
+ <section id="pilares" className="landing-section"><span className="overline">UN ESPACIO PARA LO QUE IMPORTA</span><div className="section-heading"><h2>Privado por naturaleza.<br/>Simple en el día a día.</h2><p>Menos información expuesta. Más tranquilidad para guardar y organizar tus datos.</p></div><div className="features">{[['note','01','Tus notas, solo para ti','Crea, edita y organiza información privada. Cada título y contenido se guardan cifrados.'],['user','02','Datos personales protegidos','Tu teléfono permanece oculto por defecto. Tú decides cuándo mostrarlo completo.'],['shield','03','Accesos bajo control','Añade Google Authenticator a tu cuenta y protege el acceso con una segunda verificación.']].map(([icon,n,title,text])=><article key={n}><div className="row spread"><span className="feature-icon"><Icon name={icon}/></span><span className="feature-number">{n}</span></div><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+ <section id="arquitectura" className="protocol"><div><span className="overline">PROTECCIÓN QUE PUEDES ENTENDER</span><h2>La seguridad está<br/>en los detalles.</h2><p>Capas de protección para tus datos, tus credenciales y cada sesión.</p><Link to={user?'/profile':'/register'} role="button">Proteger mi información<Icon name="arrow"/></Link></div><div className="protocol-list">{[['01','Cifrado autenticado','AES-256-GCM protege tus notas almacenadas y permite detectar manipulaciones.'],['02','Contraseñas protegidas','Argon2id con sal individual. Tu contraseña nunca se almacena en texto claro.'],['03','Control de acceso','Sesiones con expiración, verificación de permisos y registro de eventos de seguridad.']].map(([n,title,text])=><div key={n}><span>{n}</span><div><h3>{title}</h3><p>{text}</p></div><Icon name="check"/></div>)}</div></section>
+ <section className="final-cta"><Icon/><h2>Lo importante merece su propio espacio.</h2><p>Empieza con una nota. Construye tu bóveda personal.</p><Link to={user?'/notes':'/register'} role="button">{user?'Ir a mi bóveda':'Crear una cuenta'}<Icon name="arrow"/></Link></section></>;
 }

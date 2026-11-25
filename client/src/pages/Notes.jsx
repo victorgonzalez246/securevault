@@ -1,78 +1,17 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { api } from '../api.js';
 import { ErrorBox, Notice } from '../components.jsx';
-
-export default function Notes() {
-  const [notes, setNotes] = useState(null);
-  const [limit, setLimit] = useState(100);
-  const [form, setForm] = useState({ title: '', content: '' });
-  const [error, setError] = useState(null);
-  const [mfaOn, setMfaOn] = useState(true);
-  const location = useLocation();
-
-  const load = () =>
-    api('/notes').then((d) => {
-      setNotes(d.notes);
-      setLimit(d.limit);
-    }).catch(setError);
-
-  useEffect(() => {
-    load();
-    api('/mfa/status').then((s) => setMfaOn(s.enabled)).catch(() => {});
-  }, []);
-
-  const onCreate = async (e) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      await api('/notes', { method: 'POST', body: form });
-      setForm({ title: '', content: '' });
-      load();
-    } catch (err) {
-      setError(err);
-    }
-  };
-
-  return (
-    <>
-      <h2>Mis notas</h2>
-      <Notice>{location.state?.notice}</Notice>
-      {!mfaOn && (
-        <article className="msg msg-warn">
-          <strong>Protege tu cuenta:</strong> activa la verificacion en dos pasos con Google Authenticator.{' '}
-          <Link to="/profile">Activar ahora</Link>
-        </article>
-      )}
-      <ErrorBox error={error} />
-      <details open={notes?.length === 0}>
-        <summary role="button" className="outline">+ Nueva nota</summary>
-        <form onSubmit={onCreate}>
-          <label>Titulo<input required maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
-          <label>Contenido
-            <textarea required rows={6} maxLength={10000} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-            <small>{form.content.length}/10000 &middot; Se guarda cifrado con AES-256-GCM</small>
-          </label>
-          <button type="submit">Guardar nota</button>
-        </form>
-      </details>
-      {notes === null ? (
-        <p aria-busy="true">Cargando...</p>
-      ) : notes.length === 0 ? (
-        <p className="muted">Aun no tienes notas.</p>
-      ) : (
-        <>
-          <ul className="note-list">
-            {notes.map((n) => (
-              <li key={n.id}>
-                <Link to={`/notes/${n.id}`}>{n.title}</Link>
-                <small className="muted">{new Date(n.updatedAt).toLocaleString()}</small>
-              </li>
-            ))}
-          </ul>
-          <small className="muted">{notes.length} de {limit} notas</small>
-        </>
-      )}
-    </>
-  );
+import Icon from '../Icon.jsx';
+export default function Notes(){
+ const [notes,setNotes]=useState(null);const [limit,setLimit]=useState(100);const [form,setForm]=useState({title:'',content:''});const [error,setError]=useState(null);const [mfaOn,setMfaOn]=useState(null);const [query,setQuery]=useState('');const [busy,setBusy]=useState(false);const [notice,setNotice]=useState('');const location=useLocation();
+ const load=()=>api('/notes').then(d=>{setNotes(d.notes);setLimit(d.limit);}).catch(setError);
+ useEffect(()=>{load();api('/mfa/status').then(s=>setMfaOn(s.enabled)).catch(()=>{});},[]);
+ const onCreate=async e=>{e.preventDefault();setError(null);setNotice('');setBusy(true);try{await api('/notes',{method:'POST',body:form});setForm({title:'',content:''});setNotice('Tu nota se guardó cifrada.');await load();}catch(err){setError(err);}finally{setBusy(false);}};
+ const filtered=notes?.filter(n=>n.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+ return <><div className="page-heading"><div><span className="overline">TU ESPACIO PERSONAL</span><h1>Mi bóveda</h1><p>Todo lo importante, protegido en un solo lugar.</p></div><span className="badge badge-ok"><Icon name="lock"/>AES-256-GCM</span></div><Notice>{notice || location.state?.notice}</Notice><ErrorBox error={error}/>
+ <div className="stats"><div className="stat"><span>Notas cifradas</span><strong>{notes?.length ?? '—'}</strong><small>de {limit} disponibles</small></div><div className="stat"><span>Protección de datos</span><strong>AES-256</strong><small>Cifrado autenticado GCM</small></div><div className="stat"><span>Verificación en dos pasos</span><strong>{mfaOn===null?'—':mfaOn?'Activa':'Pendiente'}</strong><small><Link to="/profile">{mfaOn?'Gestionar seguridad':'Proteger mi cuenta →'}</Link></small></div></div>
+ {mfaOn===false && <div className="msg msg-warn"><strong>Añade una capa de seguridad.</strong> Activa la verificación en dos pasos desde tu <Link to="/profile">perfil</Link>.</div>}
+ <div className="note-workspace"><section className="panel"><div className="row spread"><h3>Notas cifradas</h3><span className="badge">{notes?.length ?? '—'} notas</span></div><div className="search-field"><Icon name="search"/><input type="search" aria-label="Buscar notas por título" placeholder="Buscar en tus notas…" value={query} onChange={e=>setQuery(e.target.value)}/></div>{notes===null?<p aria-busy="true">Cargando tu bóveda…</p>:filtered.length===0?<div className="empty-state"><Icon name="note"/><h3>{query?'Sin coincidencias':'Tu primera nota empieza aquí'}</h3><p>{query?'Prueba con otro título.':'Usa el formulario para guardar algo importante.'}</p></div>:<ul className="note-list">{filtered.map(n=><li key={n.id}><span className="note-icon"><Icon name="note"/></span><Link to={`/notes/${n.id}`}>{n.title}<small>Actualizada {new Date(n.updatedAt).toLocaleString('es-CR')}</small></Link><Icon name="arrow"/></li>)}</ul>}</section>
+ <section className="panel"><span className="overline">UN NUEVO ESPACIO PARA TUS IDEAS</span><h3 style={{marginTop:12}}>Crear una nota</h3><p className="muted">Se cifra antes de almacenarse.</p><form onSubmit={onCreate}><label>Título<input required maxLength={120} value={form.title} placeholder="Dale un nombre a tu nota" onChange={e=>setForm({...form,title:e.target.value})}/></label><label>Contenido<textarea required rows={6} maxLength={10000} value={form.content} placeholder="Escribe lo que quieres proteger…" onChange={e=>setForm({...form,content:e.target.value})}/><small>{form.content.length}/10000 caracteres</small></label><button type="submit" disabled={busy} aria-busy={busy}><Icon name="lock"/>{busy?'Guardando…':'Guardar nota cifrada'}</button></form></section></div></>;
 }

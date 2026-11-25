@@ -9,3 +9,7 @@ coverage/
 .DS_Store
 entregables/
 privado/
+.preview-browser/
+
+.preview-browser/
+preview-*.png

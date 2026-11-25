@@ -14,6 +14,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: TRUST_PROXY_HOPS
+        value: "2" # Cloudflare + balanceador de Render: req.ip = IP real del cliente
       - key: DB_SSL
         value: "true"
       - key: SESSION_SECRET

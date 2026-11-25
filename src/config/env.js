@@ -17,6 +17,9 @@ const schema = z.object({
   MAIL_FROM: z.string().optional(),
   ALERT_WEBHOOK_URL: z.url().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'silent']).optional(),
+  // Numero de proxies delante de la app. Render = 2 (Cloudflare + balanceador de Render).
+  // Un valor mayor permitiria falsificar la IP con X-Forwarded-For; uno menor usaria la IP del proxy.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 });
 
 function load() {
