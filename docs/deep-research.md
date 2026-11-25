@@ -1,6 +1,6 @@
 # Deep Research: despliegue de aplicaciones Node.js en producción
 
-**Proyecto:** SecureVault · **Equipo:** `<completar>` · **Fecha:** 25 de noviembre de 2026
+**Proyecto:** SecureVault · **Modalidad:** trabajo individual (victorgonzalez246) · **Fecha:** 25 de noviembre de 2026
 
 ## Resumen ejecutivo
 

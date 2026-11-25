@@ -1,5 +1,6 @@
 # Blueprint de Render (despliegue reproducible). Los secretos (sync: false) se
 # ingresan en el panel de Render al crear el servicio; NUNCA van en este archivo.
+# APP_ORIGIN no hace falta: la app usa RENDER_EXTERNAL_URL, que Render define solo.
 services:
   - type: web
     name: securevault
@@ -15,15 +16,11 @@ services:
         value: production
       - key: DB_SSL
         value: "true"
-      - key: APP_ORIGIN
-        sync: false
-      - key: DATABASE_URL
-        sync: false
       - key: SESSION_SECRET
-        sync: false
-      - key: ENCRYPTION_KEYS
-        sync: false
+        generateValue: true # Render genera un valor aleatorio de 256 bits
       - key: ENCRYPTION_KEY_CURRENT
         value: "1"
-      - key: ALERT_WEBHOOK_URL
+      - key: DATABASE_URL
+        sync: false
+      - key: ENCRYPTION_KEYS
         sync: false

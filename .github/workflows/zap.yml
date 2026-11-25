@@ -1,0 +1,28 @@
+# Fase 4: escaneo OWASP ZAP baseline (pasivo) contra la URL de produccion propia.
+# Ejecutar: gh workflow run zap.yml -f url=https://tu-app.onrender.com
+name: ZAP baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL de produccion de SecureVault (https://...)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Despertar el servicio (plan gratuito de Render)
+        run: curl -fsS --retry 10 --retry-delay 10 --retry-all-errors --max-time 90 "${{ inputs.url }}/health"
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: ${{ inputs.url }}
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-report
+          cmd_options: '-a'

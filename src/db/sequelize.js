@@ -10,7 +10,15 @@ if (config.dbSsl) {
   if (config.dbCaCert) dialectOptions.ssl.ca = config.dbCaCert;
 }
 
-export const sequelize = new Sequelize(config.DATABASE_URL, {
+// Se eliminan parametros de la URL (p. ej. "?ssl={...}" que agrega TiDB Cloud):
+// la configuracion TLS se controla solo con DB_SSL, sin que la URL pueda debilitarla.
+export function parseDatabaseUrl(raw = config.DATABASE_URL) {
+  const url = new URL(raw);
+  url.search = '';
+  return url;
+}
+
+export const sequelize = new Sequelize(parseDatabaseUrl().toString(), {
   dialect: 'mysql',
   logging: false, // nunca se registran consultas con datos
   dialectOptions,

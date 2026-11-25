@@ -22,6 +22,8 @@ const schema = z.object({
 function load() {
   // Variables vacias en .env se tratan como no definidas
   const raw = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ''));
+  // En Render, si no se define APP_ORIGIN se usa la URL publica que la plataforma asigna
+  raw.APP_ORIGIN ??= raw.RENDER_EXTERNAL_URL;
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     // Solo se informan los NOMBRES de las variables, nunca sus valores

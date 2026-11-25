@@ -1,8 +1,8 @@
 # Informe de seguridad — SecureVault
 
 **URL de producción:** `https://<completar>.onrender.com`
-**Repositorio:** `<completar>`
-**Equipo:** `<completar>`
+**Repositorio:** https://github.com/victorgonzalez246/securevault (privado)
+**Modalidad:** trabajo individual (victorgonzalez246)
 
 > Las secciones marcadas con ⏳ se completan con capturas **después del despliegue**. Todo lo demás ya está verificado con las pruebas automáticas (`npm test`: 34/34) y con pruebas manuales en local.
 
@@ -65,8 +65,8 @@ v1./iwu7UahhC7UDqAu.+6fTpGRLKiZ1sDu8pMoHAw==.UJy7KfFDug==
 | `npm audit` (backend + frontend) | **0 vulnerabilidades** | `npm run test:audit` |
 | securityheaders.com | ⏳ | |
 | Qualys SSL Labs | ⏳ | |
-| OWASP ZAP baseline | ⏳ `docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://<url>` o ZAP Desktop → *Automated Scan* | |
-| Pruebas manuales en producción | ⏳ IDOR, `' OR 1=1 --`, `<script>`, fuerza bruta → 429 | |
+| OWASP ZAP baseline | ⏳ `gh workflow run zap.yml -f url=https://<url>` (workflow `.github/workflows/zap.yml`) | |
+| Pruebas de ataque en producción | ⏳ `npm run verify:prod -- https://<url>`: 20 pruebas (IDOR, CSRF, SQLi, XSS, cabeceras, HTTPS, cookies, errores, fuerza bruta → 429). Ver `evidencia-produccion.pdf` | |
 
 ## 4. Riesgos residuales
 

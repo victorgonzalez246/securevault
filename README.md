@@ -78,13 +78,13 @@ npm run test:audit   # npm audit (backend + frontend), falla con altas/críticas
 
 ## Despliegue a producción (Render + TiDB Cloud)
 
-1. **Base de datos**: crear un clúster *TiDB Cloud Starter* (gratis). En *Connect*, elegir el endpoint público. Crear la base `securevault` y un usuario propio con permisos solo sobre esa base. Copiar la URL `mysql://...`. TiDB exige TLS; Node usa sus CA incluidas, así que no hace falta `DB_CA_CERT`.
-2. **Repositorio**: subir el código a GitHub. CI corre automáticamente en cada push.
-3. **Render**: *New → Blueprint* y seleccionar el repositorio (lee `render.yaml`). Ingresar en el panel los secretos marcados `sync: false`: `APP_ORIGIN`, `DATABASE_URL`, `SESSION_SECRET`, `ENCRYPTION_KEYS` y, si se usa, `ALERT_WEBHOOK_URL`.
-4. Render compila (`npm ci && npm run build`), aplica el esquema (`npm run db:migrate`), arranca con `npm start` y verifica `/health`. HTTPS es automático y el servicio se reinicia solo si cae.
-5. Con `autoDeployTrigger: checksPass`, cada push a `main` se despliega **solo si CI pasa**.
-6. Crear el admin ejecutando `npm run create-admin` en local con `DATABASE_URL` de producción en la terminal.
-7. Verificar: securityheaders.com, SSL Labs, OWASP ZAP baseline (ver `docs/security-report.md`).
+Guía completa para copiar y pegar: **[docs/DEPLOY.md](docs/DEPLOY.md)**. En resumen:
+
+1. TiDB Cloud Starter (MySQL gratis, TLS obligatorio) → `DATABASE_URL`. La base se crea sola al arrancar.
+2. Render → *New → Blueprint* con este repo (`render.yaml`) → pegar `DATABASE_URL` y `ENCRYPTION_KEYS`. `SESSION_SECRET` lo genera Render y `APP_ORIGIN` sale de `RENDER_EXTERNAL_URL`.
+3. Cada push a `main` se despliega **solo si el CI pasa** (`autoDeployTrigger: checksPass`). HTTPS, redirección a HTTPS y reinicio automático los da la plataforma.
+4. Verificación: `npm run verify:prod -- https://<url>` (20 pruebas de ataque), ZAP baseline (`gh workflow run zap.yml -f url=https://<url>`), securityheaders.com y SSL Labs.
+5. PDFs de entrega: `npm run docs:pdf -- https://<url>`.
 
 > Las credenciales de prueba (usuario y admin) se entregan al docente por canal privado, no en este README.
 
@@ -100,3 +100,5 @@ npm run test:audit   # npm audit (backend + frontend), falla con altas/críticas
 - [`docs/deep-research.md`](docs/deep-research.md): investigación de despliegue (Fase 0)
 - [`docs/threat-model.md`](docs/threat-model.md): modelo de amenazas STRIDE (A06)
 - [`docs/security-report.md`](docs/security-report.md): informe OWASP Top 10:2025 con evidencias
+- [`docs/DEPLOY.md`](docs/DEPLOY.md): despliegue paso a paso
+- [`docs/DEMO-GUION.md`](docs/DEMO-GUION.md): guion de la demostración de 10 minutos
