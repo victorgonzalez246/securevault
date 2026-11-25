@@ -27,7 +27,7 @@ jobs:
     env:
       DATABASE_URL: mysql://root:ci-only-root@127.0.0.1:3306/securevault_test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -49,7 +49,7 @@ jobs:
   secrets-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # revisa TODO el historial, no solo el ultimo commit
       # A08: binario oficial con version fijada y checksum SHA-256 verificado
