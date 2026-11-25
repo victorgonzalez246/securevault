@@ -65,11 +65,14 @@ export function requireMfaEnrolled(req, res, next) {
 }
 
 // Denegar por defecto: solo pasan los roles listados.
+// Se responde 404 (no 403) para no revelar la existencia de rutas privilegiadas:
+// quien sondea /api/admin sin permiso recibe lo mismo que ante una ruta inexistente.
+// El intento SI queda registrado en la bitacora (A09) para detectar abuso.
 export const requireRole = (...roles) => async (req, res, next) => {
   if (!req.user) return next(new HttpError(401, 'Debes iniciar sesion'));
   if (!roles.includes(req.user.role)) {
     await audit(req, 'access_denied', { path: req.originalUrl, requiredRole: roles.join(',') });
-    return next(new HttpError(403, 'Acceso denegado'));
+    return next(new HttpError(404, 'Recurso no encontrado'));
   }
   next();
 };

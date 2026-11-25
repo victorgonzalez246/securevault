@@ -76,9 +76,10 @@ describe('A01 Broken Access Control', () => {
     expect(await AuditLog.count({ where: { event: 'access_denied' } })).toBeGreaterThanOrEqual(3);
   });
 
-  it('un usuario normal recibe 403 en el panel de administracion; el admin si entra', async () => {
+  it('un usuario normal recibe 404 en el panel de administracion (oculto); el admin si entra', async () => {
     const user = await registerAndLogin('normal@test.com');
-    expect((await user.get('/api/admin/users')).status).toBe(403);
+    // 404 en vez de 403: no se revela que el panel admin existe
+    expect((await user.get('/api/admin/users')).status).toBe(404);
 
     const admin = await registerAndLogin('admin@test.com');
     await User.update({ role: 'admin' }, { where: { email: 'admin@test.com' } });

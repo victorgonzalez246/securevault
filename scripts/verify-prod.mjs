@@ -114,7 +114,7 @@ check('A01', 'IDOR: B no puede leer/editar/borrar la nota de A', [bGet, bPut, bD
 const aGet = await A.req('GET', `/api/notes/${id}`);
 check('A01', 'La duena si accede a su nota', aGet.status === 200, `${aGet.status}`);
 const bAdmin = await B.req('GET', '/api/admin/users');
-check('A01', 'Usuario normal en panel admin', bAdmin.status === 403, `${bAdmin.status} ${bAdmin.text}`);
+check('A01', 'Usuario normal en panel admin (404: ruta privilegiada oculta)', bAdmin.status === 404, `${bAdmin.status} ${bAdmin.text}`);
 const noCsrf = await A.req('POST', '/api/notes', { title: 't', content: 'c' }, { csrf: false });
 check('A01', 'Peticion sin token CSRF', noCsrf.status === 403, `${noCsrf.status} ${noCsrf.text}`);
 
