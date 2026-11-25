@@ -7,6 +7,7 @@ import { rateLimit } from 'express-rate-limit';
 import { pinoHttp } from 'pino-http';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { isIP } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from './config/env.js';
@@ -40,6 +41,17 @@ export function createApp() {
   // A02: sin X-Powered-By; se confia solo en los proxies conocidos de la plataforma (TRUST_PROXY_HOPS)
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY_HOPS);
+
+  // IP real del cliente para rate limit, bitacora y logs. En Render (Cloudflare delante),
+  // X-Forwarded-For conserva valores falsificados por el cliente; True-Client-IP en cambio
+  // lo fija Cloudflare con la IP real (sobrescribe cualquier valor enviado por el atacante).
+  if (config.CLIENT_IP_HEADER) {
+    app.use((req, res, next) => {
+      const value = req.get(config.CLIENT_IP_HEADER)?.trim();
+      if (value && isIP(value)) Object.defineProperty(req, 'ip', { value, configurable: true });
+      next();
+    });
+  }
 
   app.use(pinoHttp({
     logger,

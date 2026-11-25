@@ -15,7 +15,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: TRUST_PROXY_HOPS
-        value: "2" # Cloudflare + balanceador de Render: req.ip = IP real del cliente
+        value: "1" # solo para X-Forwarded-Proto (HTTPS)
+      - key: CLIENT_IP_HEADER
+        value: true-client-ip # Cloudflare la fija con la IP real; no se puede falsificar
       - key: DB_SSL
         value: "true"
       - key: SESSION_SECRET

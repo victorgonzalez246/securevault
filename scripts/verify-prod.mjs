@@ -24,7 +24,7 @@ class Client {
   csrf = null;
   async req(method, path, body, { csrf = true, raw, spoofIp } = {}) {
     const headers = { Origin: ORIGIN };
-    if (spoofIp) headers['X-Forwarded-For'] = spoofIp;
+    if (spoofIp) { headers['X-Forwarded-For'] = spoofIp; headers['True-Client-IP'] = spoofIp; }
     if (this.cookies.size) headers.Cookie = [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
     if (method !== 'GET') {
       headers['Content-Type'] = 'application/json';
@@ -131,7 +131,7 @@ check('A05', "' OR 1=1 -- en el login no autentica", sqliLogin.status === 401, `
 const statuses = [];
 // El atacante ademas falsifica X-Forwarded-For con una IP distinta en cada intento para evadir el limite
 for (let i = 0; i < 6; i++) statuses.push((await attacker.req('POST', '/api/auth/login', { email: emailB, password: `Wrong#Pass${i}xx` }, { spoofIp: `203.0.113.${i + 1}` })).status);
-check('A07', 'Fuerza bruta bloqueada con HTTP 429 (aunque falsifique X-Forwarded-For)', statuses.includes(429) && statuses[0] === 401, statuses.join(', '));
+check('A07', 'Fuerza bruta bloqueada con HTTP 429 (aunque falsifique X-Forwarded-For y True-Client-IP)', statuses.includes(429) && statuses[0] === 401, statuses.join(', '));
 
 // --- Reporte ---
 const passed = results.filter((r) => r.pass).length;
