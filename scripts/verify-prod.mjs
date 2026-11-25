@@ -4,6 +4,7 @@
 // Nota: al final prueba fuerza bruta; tu IP quedara limitada en /login unos 15 minutos.
 import { randomBytes } from 'node:crypto';
 import { writeFileSync, mkdirSync } from 'node:fs';
+import * as OTPAuth from 'otpauth';
 
 const BASE = (process.argv[2] ?? '').replace(/\/+$/, '');
 if (!/^https:\/\/[^/]+$/.test(BASE) && !/^http:\/\/localhost:\d+$/.test(BASE)) {
@@ -79,20 +80,29 @@ try {
   check('A04', 'HTTP redirige a HTTPS', false, err.message);
 }
 
-// --- Usuarios de prueba ---
+// --- Usuarios de prueba (el registro inicia sesion; la MFA es obligatoria) ---
 const A = await new Client().init();
 const B = await new Client().init();
 const emailA = `verify-a-${rnd()}@example.com`;
 const emailB = `verify-b-${rnd()}@example.com`;
-const pwA = password();
-const pwB = password();
-await register(A, emailA, pwA);
-await register(B, emailB, pwB);
-
-const loginA = await A.req('POST', '/api/auth/login', { email: emailA, password: pwA });
-const cookie = loginA.setCookie.join(' ');
+const regA = await register(A, emailA, password());
+const cookie = regA.setCookie.join(' ');
 check('A07/A04', 'Cookie de sesion HttpOnly + Secure + SameSite=Strict + __Host-', /HttpOnly/i.test(cookie) && /Secure/i.test(cookie) && /SameSite=Strict/i.test(cookie) && /__Host-/.test(cookie), cookie.replace(/=s%3A[^;]+/, '=<redactado>'));
-await B.req('POST', '/api/auth/login', { email: emailB, password: pwB });
+
+const blocked = await A.req('GET', '/api/notes');
+check('A07', 'MFA obligatoria: cuenta nueva sin Google Authenticator no accede a nada', blocked.status === 403 && blocked.json?.code === 'MFA_ENROLLMENT_REQUIRED', `${blocked.status} ${blocked.text}`);
+
+// Activa Google Authenticator calculando el codigo TOTP con la clave (como hace la app del telefono)
+async function enrollMfa(c) {
+  const setup = await c.req('POST', '/api/mfa/setup');
+  const code = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(setup.json.secret), digits: 6, period: 30, algorithm: 'SHA1' }).generate();
+  return (await c.req('POST', '/api/mfa/enable', { code })).status;
+}
+const enrolledA = await enrollMfa(A);
+await register(B, emailB, password());
+const enrolledB = await enrollMfa(B);
+const unlocked = await A.req('GET', '/api/notes');
+check('A07', 'Tras activar Google Authenticator la cuenta queda desbloqueada', enrolledA === 200 && enrolledB === 200 && unlocked.status === 200, `enable A ${enrolledA}, enable B ${enrolledB}, GET /api/notes ${unlocked.status}`);
 
 // --- A01 ---
 const note = await A.req('POST', '/api/notes', { title: 'Nota privada de A', content: 'secreto de A' });

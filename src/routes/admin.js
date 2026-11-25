@@ -1,13 +1,13 @@
 // RF-07: panel de administracion. A01: requireRole('admin') verificado en el servidor.
 import { Router } from 'express';
 import { User, AuditLog } from '../db/models.js';
-import { requireRole, validate } from '../middleware/security.js';
+import { requireAuth, requireMfaEnrolled, requireRole, validate } from '../middleware/security.js';
 import { userIdParam, roleSchema } from '../schemas.js';
 import { audit } from '../services/audit.js';
 
 export function adminRouter() {
   const router = Router();
-  router.use(requireRole('admin'));
+  router.use(requireAuth, requireMfaEnrolled, requireRole('admin'));
 
   router.get('/users', async (req, res) => {
     const users = await User.findAll({

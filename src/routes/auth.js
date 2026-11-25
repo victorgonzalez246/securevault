@@ -10,6 +10,7 @@ import { validate, issueCsrfToken, requireAuth } from '../middleware/security.js
 import { registerSchema, loginSchema, forgotSchema, resetSchema, mfaCodeSchema } from '../schemas.js';
 import { audit, alert } from '../services/audit.js';
 import { verifySecondFactor } from '../services/mfa.js';
+import { config } from '../config/env.js';
 import { sendPasswordResetEmail } from '../services/mailer.js';
 
 const LOCK_THRESHOLD = 5;
@@ -18,7 +19,7 @@ const MFA_MAX_TRIES = 5;
 const RESET_TTL_MS = 15 * 60 * 1000;
 const GENERIC_LOGIN_ERROR = 'Correo o contrasena incorrectos, o cuenta bloqueada temporalmente';
 
-const publicUser = (u) => ({ id: u.id, email: u.email, name: u.name, role: u.role });
+const publicUser = (u) => ({ id: u.id, email: u.email, name: u.name, role: u.role, mfaEnabled: Boolean(u.totpEnabled) });
 
 // Promesas para la API de callbacks de express-session
 const regenerate = (req) => new Promise((ok, ko) => req.session.regenerate((e) => (e ? ko(e) : ok())));
@@ -47,7 +48,7 @@ export function authRouter() {
     message: { error: 'Demasiadas solicitudes. Intenta mas tarde.' },
   });
 
-  router.get('/me', requireAuth, (req, res) => res.json({ user: publicUser(req.user) }));
+  router.get('/me', requireAuth, (req, res) => res.json({ user: publicUser(req.user), mfaRequired: config.mfaRequired }));
 
   // RF-01: registro. La contrasena solo se guarda como hash Argon2id.
   router.post('/register', sensitiveLimiter, validate(registerSchema), async (req, res) => {
@@ -64,7 +65,13 @@ export function authRouter() {
       return u;
     });
     await audit(req, 'register', {}, user.id);
-    res.status(201).json({ message: 'Cuenta creada. Ya puedes iniciar sesion.' });
+    // La cuenta nueva inicia sesion de inmediato, pero (con MFA obligatoria) solo puede
+    // configurar Google Authenticator hasta completarlo: requireMfaEnrolled bloquea lo demas.
+    await regenerate(req);
+    req.session.userId = user.id;
+    req.session.authAt = Date.now();
+    const csrfToken = issueCsrfToken(req);
+    res.status(201).json({ message: 'Cuenta creada', user: publicUser(user), mfaRequired: config.mfaRequired, csrfToken });
   });
 
   // RF-02: login con sesion en cookie HttpOnly/Secure/SameSite
@@ -115,7 +122,7 @@ export function authRouter() {
     req.session.authAt = Date.now();
     const csrfToken = issueCsrfToken(req);
     await audit(req, 'login_ok', { mfa: false }, user.id);
-    res.json({ user: publicUser(user), csrfToken });
+    res.json({ user: publicUser(user), mfaRequired: config.mfaRequired, csrfToken });
   });
 
   // MFA paso 2: codigo de Google Authenticator (o de respaldo). Maximo 5 intentos por

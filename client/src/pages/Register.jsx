@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { api } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { ErrorBox, PASSWORD_HINT } from '../components.jsx';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [form, setForm] = useState({ email: '', name: '', password: '', phone: '' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -15,8 +16,9 @@ export default function Register() {
     setBusy(true);
     setError(null);
     try {
-      const d = await api('/auth/register', { method: 'POST', body: form });
-      navigate('/login', { state: { notice: d.message } });
+      const d = await register(form);
+      // Paso obligatorio: configurar Google Authenticator antes de usar la boveda
+      navigate(d.mfaRequired ? '/setup-mfa' : '/notes', { replace: true });
     } catch (err) {
       setError(err);
     } finally {

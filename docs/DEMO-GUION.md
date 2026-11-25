@@ -14,15 +14,17 @@ $u = 'https://TU-URL.onrender.com'
 ---
 
 ## 1. Introducción (1 min)
-"SecureVault guarda notas privadas cifradas con AES-256-GCM. Stack: React, Express 5, Sequelize y MySQL (TiDB Cloud), desplegado en Render con HTTPS y un pipeline de CI que ejecuta 34 pruebas de seguridad, npm audit y gitleaks antes de cada deploy."
+"SecureVault guarda notas privadas cifradas con AES-256-GCM. Stack: React, Express 5, Sequelize y MySQL (TiDB Cloud), desplegado en Render con HTTPS y un pipeline de CI que ejecuta 36 pruebas de seguridad, npm audit y gitleaks antes de cada deploy."
 
 Muestra: la URL con el candado HTTPS, y en GitHub → **Actions** el CI en verde.
 
-## 2. Funcionalidad + MFA con Google Authenticator (2 min)
-1. **Perfil** → teléfono enmascarado `***-***-1234` → **Mostrar completo**.
-2. **Activar con Google Authenticator** → escanear el QR con el teléfono → escribir el código → se muestran los 8 códigos de respaldo.
-3. **Salir** → iniciar sesión → la contraseña sola **no basta**: pide el código de 6 dígitos → ingresarlo.
-4. Explicar: el secreto TOTP se guarda cifrado, cada código sirve una sola vez (anti-replay) y hay 5 intentos máximo.
+## 2. Cuenta nueva con MFA obligatoria (2 min)
+1. **Crear cuenta** → al registrarse, la app lleva directo a **"Protege tu cuenta"**: no se puede usar la bóveda sin Google Authenticator.
+2. Intenta abrir `/notes` en la barra de direcciones → te devuelve a la configuración. El **servidor** responde 403 `MFA_ENROLLMENT_REQUIRED`, no solo la interfaz.
+3. **Activar con Google Authenticator** → escanear el QR con el teléfono → escribir el código → guardar los 8 códigos de respaldo → **Ir a mi bóveda**.
+4. **Salir** → iniciar sesión → la contraseña sola **no basta**: pide el código de 6 dígitos.
+5. **Perfil** → teléfono enmascarado `***-***-1234` → **Mostrar completo**.
+6. Explicar: secreto TOTP cifrado, cada código sirve una sola vez (anti-replay), máximo 5 intentos.
 
 ## 3. Ataque 1 — IDOR / Broken Access Control (A01) (1 min)
 En el navegador **admin** (incógnito), pega la URL de la nota del usuario:

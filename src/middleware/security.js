@@ -7,10 +7,11 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const ABSOLUTE_SESSION_MS = 8 * 60 * 60 * 1000;
 
 export class HttpError extends Error {
-  constructor(status, publicMessage) {
+  constructor(status, publicMessage, code) {
     super(publicMessage);
     this.status = status;
     this.publicMessage = publicMessage;
+    this.code = code;
   }
 }
 
@@ -43,7 +44,7 @@ export async function loadUser(req, res, next) {
   if (!authAt || Date.now() - authAt > ABSOLUTE_SESSION_MS) {
     return req.session.regenerate(() => next()); // expiracion absoluta de la sesion
   }
-  const user = await User.findByPk(userId, { attributes: ['id', 'email', 'name', 'role'] });
+  const user = await User.findByPk(userId, { attributes: ['id', 'email', 'name', 'role', 'totpEnabled'] });
   if (!user) return req.session.regenerate(() => next());
   req.user = user;
   next();
@@ -51,6 +52,15 @@ export async function loadUser(req, res, next) {
 
 export function requireAuth(req, res, next) {
   if (!req.user) return next(new HttpError(401, 'Debes iniciar sesion'));
+  next();
+}
+
+// MFA obligatoria (verificada en el servidor): sin Google Authenticator configurado,
+// la sesion solo puede usar /api/mfa (configurarlo), /api/auth/me y /api/auth/logout.
+export function requireMfaEnrolled(req, res, next) {
+  if (config.mfaRequired && req.user && !req.user.totpEnabled) {
+    return next(new HttpError(403, 'Debes activar la verificacion en dos pasos para continuar', 'MFA_ENROLLMENT_REQUIRED'));
+  }
   next();
 }
 

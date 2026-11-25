@@ -20,6 +20,8 @@ const schema = z.object({
   // Numero de proxies de confianza (para X-Forwarded-Proto / req.secure).
   // Cabecera con la IP real que fija la plataforma (Render/Cloudflare: true-client-ip).
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+  // MFA obligatoria: una cuenta sin Google Authenticator solo puede configurarlo (maxima seguridad)
+  MFA_REQUIRED: z.enum(['true', 'false']).default('true'),
   CLIENT_IP_HEADER: z.enum(['true-client-ip', 'cf-connecting-ip']).optional(),
 });
 
@@ -54,6 +56,7 @@ function load() {
     isProd: env.NODE_ENV === 'production',
     isTest: env.NODE_ENV === 'test',
     dbSsl: env.DB_SSL === 'true',
+    mfaRequired: env.MFA_REQUIRED === 'true',
     dbCaCert: env.DB_CA_CERT?.replace(/\\n/g, '\n'),
     keys,
     logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),

@@ -174,7 +174,7 @@ export function createApp() {
     const message = err instanceof HttpError
       ? err.publicMessage
       : status >= 500 ? 'Ocurrio un error interno. Intenta de nuevo.' : 'Solicitud invalida';
-    res.status(status).json({ error: message, requestId: req.id });
+    res.status(status).json({ error: message, ...(err instanceof HttpError && err.code && { code: err.code }), requestId: req.id });
   });
 
   app.locals.sessionStore = sessionStore;

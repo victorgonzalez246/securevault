@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { User, phoneAad } from '../db/models.js';
 import { encrypt, decrypt } from '../crypto/aes.js';
-import { requireAuth, validate } from '../middleware/security.js';
+import { requireAuth, requireMfaEnrolled, validate } from '../middleware/security.js';
 import { profileSchema } from '../schemas.js';
 import { audit } from '../services/audit.js';
 
@@ -19,7 +19,7 @@ async function readPhone(userId) {
 
 export function profileRouter() {
   const router = Router();
-  router.use(requireAuth);
+  router.use(requireAuth, requireMfaEnrolled);
 
   router.get('/', async (req, res) => {
     const phone = await readPhone(req.user.id);

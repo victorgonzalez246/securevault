@@ -31,7 +31,7 @@ flowchart LR
 | # | STRIDE | Amenaza | Mitigación implementada | Archivo |
 |---|---|---|---|---|
 | 1 | **S**poofing | Fuerza bruta / credential stuffing en login | Rate limit 5/15 min por IP (429), bloqueo progresivo por cuenta (1→60 min), Argon2id, alerta al 5.º fallo | `src/routes/auth.js` |
-| 1b | Spoofing | Contraseña robada (phishing, filtración) | **MFA TOTP con Google Authenticator**: sin el código del teléfono no hay sesión; anti-replay; 5 intentos por login; códigos de respaldo | `src/routes/mfa.js`, `src/services/mfa.js` |
+| 1b | Spoofing | Contraseña robada (phishing, filtración) | **MFA TOTP obligatoria con Google Authenticator** (se configura al crear la cuenta; el servidor bloquea todo hasta completarla): sin el código del teléfono no hay sesión; anti-replay; 5 intentos por login; códigos de respaldo | `src/routes/mfa.js`, `src/services/mfa.js` |
 | 2 | Spoofing | Robo o fijación de sesión | Cookie `__Host-` HttpOnly/Secure/SameSite=Strict, `session.regenerate()` al autenticar, expiración 30 min / 8 h absoluta | `src/app.js`, `src/middleware/security.js` |
 | 3 | Spoofing | Enumeración de usuarios | Mensajes genéricos en login/registro/recuperación; hash ficticio para igualar tiempos | `src/routes/auth.js`, `src/crypto/password.js` |
 | 4 | **T**ampering | Modificación de notas cifradas en la BD | AES-256-GCM con tag de 16 bytes + AAD ligado a dueño y registro | `src/crypto/aes.js` |

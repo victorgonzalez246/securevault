@@ -3,6 +3,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import * as OTPAuth from 'otpauth';
 
+process.env.MFA_REQUIRED = 'true'; // en este archivo la MFA es obligatoria (como en produccion)
+
 const { createApp } = await import('../src/app.js');
 const { sequelize, closeDb } = await import('../src/db/sequelize.js');
 
@@ -39,6 +41,38 @@ beforeAll(async () => {
 afterAll(async () => {
   app.locals.sessionStore.stopExpiringSessions();
   await closeDb();
+});
+
+describe('MFA obligatoria desde la creacion de la cuenta', () => {
+  it('al registrarse queda en sesion pero TODO esta bloqueado hasta activar Google Authenticator', async () => {
+    const c = await client();
+    const reg = await c.post('/api/auth/register', { email: 'nuevo@test.com', name: 'Nuevo', password: PASSWORD });
+    expect(reg.status).toBe(201);
+    expect(reg.body.user.mfaEnabled).toBe(false);
+    expect(reg.body.mfaRequired).toBe(true);
+
+    const notes = await c.get('/api/notes');
+    expect(notes.status).toBe(403);
+    expect(notes.body.code).toBe('MFA_ENROLLMENT_REQUIRED');
+    expect((await c.get('/api/profile')).status).toBe(403);
+    expect((await c.post('/api/notes', { title: 't', content: 'c' })).status).toBe(403);
+    expect((await c.get('/api/auth/me')).status).toBe(200); // puede saber quien es y configurar MFA
+
+    const setup = await c.post('/api/mfa/setup');
+    expect(setup.status).toBe(200);
+    const code = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(setup.body.secret), digits: 6, period: 30, algorithm: 'SHA1' }).generate();
+    expect((await c.post('/api/mfa/enable', { code })).status).toBe(200);
+    expect((await c.get('/api/notes')).status).toBe(200); // desbloqueado
+  });
+
+  it('un admin sin MFA tampoco puede entrar al panel', async () => {
+    const c = await client();
+    await c.post('/api/auth/register', { email: 'admin-sin-mfa@test.com', name: 'A', password: PASSWORD });
+    await sequelize.query("UPDATE users SET role='admin' WHERE email='admin-sin-mfa@test.com'");
+    const res = await c.get('/api/admin/users');
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('MFA_ENROLLMENT_REQUIRED');
+  });
 });
 
 describe('MFA con Google Authenticator (TOTP)', () => {
@@ -115,5 +149,7 @@ describe('MFA con Google Authenticator (TOTP)', () => {
     expect((await c.post('/api/mfa/disable', { password: 'mala', code: recoveryCodes[2] })).status).toBe(400);
     expect((await c.post('/api/mfa/disable', { password: PASSWORD, code: recoveryCodes[3] })).status).toBe(200);
     expect((await c.get('/api/mfa/status')).body.enabled).toBe(false);
+    // al desactivarla (cambio de telefono) vuelve a exigir configurarla antes de usar la app
+    expect((await c.get('/api/notes')).status).toBe(403);
   });
 });

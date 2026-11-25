@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { ErrorBox, Notice } from '../components.jsx';
+import { useAuth } from '../auth.jsx';
 
 // Configuracion de la verificacion en dos pasos con Google Authenticator
-export default function MfaSettings() {
+// onboarding: paso obligatorio tras crear la cuenta; onDone se llama cuando el usuario guardo sus codigos
+export default function MfaSettings({ onboarding = false, onDone }) {
+  const { refresh: refreshAuth } = useAuth();
   const [status, setStatus] = useState(null);
   const [setup, setSetup] = useState(null); // { qr, secret }
   const [code, setCode] = useState('');
@@ -46,6 +49,7 @@ export default function MfaSettings() {
       const d = await api('/mfa/disable', { method: 'POST', body: disableForm });
       setDisableForm(null);
       setMsg(d.message);
+      await refreshAuth(); // la MFA es obligatoria: la app pedira configurarla de nuevo
       refresh();
     });
   };
@@ -65,7 +69,7 @@ export default function MfaSettings() {
         <div className="recovery">
           <p><strong>Guarda estos codigos de respaldo en un lugar seguro.</strong> Cada uno sirve una sola vez si pierdes tu telefono. No se volveran a mostrar.</p>
           <ul className="codes">{recoveryCodes.map((c) => <li key={c}><code>{c}</code></li>)}</ul>
-          <button className="outline small" onClick={() => setRecoveryCodes(null)}>Ya los guarde</button>
+          <button className="small" onClick={() => (onDone ? onDone() : setRecoveryCodes(null))}>{onboarding ? 'Ya los guarde, ir a mi boveda' : 'Ya los guarde'}</button>
         </div>
       )}
 
@@ -103,10 +107,10 @@ export default function MfaSettings() {
         </div>
       )}
 
-      {status.enabled && !disableForm && (
+      {status.enabled && !disableForm && !onboarding && (
         <>
           <p className="muted">Codigos de respaldo restantes: <strong>{status.recoveryCodesLeft}</strong></p>
-          <button className="secondary outline" onClick={() => setDisableForm({ password: '', code: '' })}>Desactivar</button>
+          <button className="secondary outline" onClick={() => setDisableForm({ password: '', code: '' })}>Cambiar de telefono</button>
         </>
       )}
 
@@ -121,7 +125,7 @@ export default function MfaSettings() {
               onChange={(e) => setDisableForm({ ...disableForm, code: e.target.value })} />
           </label>
           <div className="row">
-            <button type="submit" className="secondary">Desactivar verificacion</button>
+            <button type="submit" className="secondary">Reconfigurar con otro telefono</button>
             <button type="button" className="outline" onClick={() => setDisableForm(null)}>Cancelar</button>
           </div>
         </form>

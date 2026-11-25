@@ -15,7 +15,7 @@ Aplicación web para guardar **notas privadas** y **datos personales sensibles**
 
 - **RF-01** Registro con política de contraseña (12+ caracteres, mayúscula, minúscula, número y símbolo). Hash Argon2id.
 - **RF-02** Login/logout con sesión en cookie `HttpOnly; Secure; SameSite=Strict` (`__Host-` en producción), 30 min de inactividad y 8 h de duración máxima. El logout destruye la sesión en el servidor.
-- **MFA (bonificación)** Verificación en dos pasos con **Google Authenticator** (TOTP RFC 6238): QR, secreto cifrado, anti-replay y 8 códigos de respaldo de un solo uso.
+- **MFA obligatoria (bonificación)** Verificación en dos pasos con **Google Authenticator**, exigida desde la creación de la cuenta (el servidor bloquea todo hasta configurarla; `MFA_REQUIRED=true` por defecto) (TOTP RFC 6238): QR, secreto cifrado, anti-replay y 8 códigos de respaldo de un solo uso.
 - **RF-03** Roles `user` y `admin`, verificados en el servidor en cada petición (el rol se lee de la BD).
 - **RF-04** CRUD de notas. Cada consulta filtra por `owner_id`. Título y contenido cifrados con AES-256-GCM.
 - **RF-05** Teléfono cifrado y mostrado como `***-***-1234`. Mostrarlo completo queda en la bitácora.
@@ -56,7 +56,7 @@ $env:ADMIN_EMAIL="admin@dominio.com"; $env:ADMIN_PASSWORD="<contrasena fuerte>";
 ## Pruebas
 
 ```bash
-npm test             # 34 pruebas: MFA, IDOR, CSRF, inyección, fuerza bruta (429), cripto, errores genéricos...
+npm test             # 36 pruebas: MFA, IDOR, CSRF, inyección, fuerza bruta (429), cripto, errores genéricos...
 npm run test:audit   # npm audit (backend + frontend), falla con altas/críticas
 ```
 

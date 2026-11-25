@@ -1194,3 +1194,9 @@ button:disabled:hover { transform: none; box-shadow: none; }
   .note-workspace, .protocol, .features { grid-template-columns: minmax(0, 1fr); }
   .table-wrap:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 }
+.mfa-onboarding h2 { margin-top: 1rem; }
+.onboarding-steps { display: flex; gap: 0.5rem; flex-wrap: wrap; font-size: 0.85rem; }
+.onboarding-steps span { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--pico-muted-border-color); color: var(--pico-muted-color); }
+.onboarding-steps span svg { width: 16px; height: 16px; }
+.onboarding-steps .done { color: #2e7d32; border-color: #a5d6a7; }
+.onboarding-steps .current { color: var(--pico-primary); border-color: var(--pico-primary); font-weight: 600; }

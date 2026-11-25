@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { Note, LIMITS, noteAad } from '../db/models.js';
 import { encrypt, decrypt } from '../crypto/aes.js';
-import { requireAuth, validate, HttpError } from '../middleware/security.js';
+import { requireAuth, requireMfaEnrolled, validate, HttpError } from '../middleware/security.js';
 import { noteSchema, idParam } from '../schemas.js';
 import { audit } from '../services/audit.js';
 
@@ -32,7 +32,7 @@ async function findOwnNote(req) {
 
 export function notesRouter() {
   const router = Router();
-  router.use(requireAuth);
+  router.use(requireAuth, requireMfaEnrolled);
 
   router.get('/', async (req, res) => {
     const notes = await Note.findAll({ where: { ownerId: req.user.id }, order: [['updatedAt', 'DESC']] });

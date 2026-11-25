@@ -21,6 +21,10 @@ async function client(ip = `10.2.0.${ipCounter++}`) {
   let csrf = (await agent.get('/api/csrf').set('X-Forwarded-For', ip)).body.csrfToken;
   const send = (method, url, body) => {
     const r = agent[method](url).set('X-Forwarded-For', ip).set('X-CSRF-Token', csrf);
+    // registro y login regeneran la sesion y devuelven un token CSRF nuevo
+    r.on('response', (res) => {
+      if (res.body?.csrfToken) csrf = res.body.csrfToken;
+    });
     return body === undefined ? r : r.send(body);
   };
   return {
@@ -217,8 +221,10 @@ describe('A07 Authentication Failures', () => {
     expect(row.token_hash).not.toBe(token);
 
     expect((await c.post('/api/auth/reset', { token, password: 'Nueva#Clave2026' })).status).toBe(200);
-    expect((await c.post('/api/auth/reset', { token, password: 'Otra#Clave20266' })).status).toBe(400);
-    expect((await c.login('reset@test.com', 'Nueva#Clave2026')).status).toBe(200);
+    // el reset cierra todas las sesiones del usuario (tambien esta): se reintenta desde otro cliente
+    const other = await client('10.0.0.121');
+    expect((await other.post('/api/auth/reset', { token, password: 'Otra#Clave20266' })).status).toBe(400);
+    expect((await other.login('reset@test.com', 'Nueva#Clave2026')).status).toBe(200);
   });
 });
 
