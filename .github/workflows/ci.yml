@@ -27,8 +27,8 @@ jobs:
     env:
       DATABASE_URL: mysql://root:ci-only-root@127.0.0.1:3306/securevault_test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -49,10 +49,17 @@ jobs:
   secrets-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # revisa TODO el historial, no solo el ultimo commit
-      - name: Escaneo de secretos con gitleaks
-        uses: gitleaks/gitleaks-action@v2
+      # A08: binario oficial con version fijada y checksum SHA-256 verificado
+      - name: Instalar gitleaks (verificado)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSLo gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum --check
+          tar -xzf gitleaks.tar.gz gitleaks && rm gitleaks.tar.gz
+      - name: Escaneo de secretos en todo el historial
+        run: ./gitleaks git --redact --verbose --exit-code 1 .
