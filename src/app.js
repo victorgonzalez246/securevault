@@ -94,6 +94,7 @@ export function createApp() {
       },
     },
     strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true },
+    crossOriginEmbedderPolicy: true, // todo se sirve desde el mismo origen
     referrerPolicy: { policy: 'no-referrer' },
   }));
   app.use((req, res, next) => {
@@ -114,9 +115,18 @@ export function createApp() {
 
   // Frontend React compilado (mismo origen que la API)
   const hasClient = existsSync(CLIENT_DIST);
-  if (hasClient) app.use(express.static(CLIENT_DIST, { index: false, maxAge: '1h' }));
+  // Archivos con hash en el nombre (/assets): cache larga e inmutable. index.html y favicon: sin cache.
+  if (hasClient) {
+    app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets'), { maxAge: '1y', immutable: true, fallthrough: false }));
+    app.use(express.static(CLIENT_DIST, { index: false, setHeaders: (res) => res.set('Cache-Control', 'no-cache') }));
+  }
 
   // A02: CORS restringido al dominio propio
+  // A02: las respuestas de la API (datos privados) nunca se guardan en cache
+  app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
   app.use('/api', cors({ origin: config.APP_ORIGIN, credentials: true }));
   app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
   app.use('/api', express.json({ limit: '20kb' }));
@@ -144,7 +154,7 @@ export function createApp() {
 
   // SPA: cualquier otra ruta GET devuelve index.html
   if (hasClient) {
-    app.get('/{*splat}', (req, res) => res.sendFile(path.join(CLIENT_DIST, 'index.html')));
+    app.get('/{*splat}', (req, res) => res.set('Cache-Control', 'no-store').sendFile(path.join(CLIENT_DIST, 'index.html')));
   }
   app.use((req, res, next) => next(new HttpError(404, 'Recurso no encontrado')));
 

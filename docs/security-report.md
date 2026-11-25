@@ -65,15 +65,16 @@ v1./iwu7UahhC7UDqAu.+6fTpGRLKiZ1sDu8pMoHAw==.UJy7KfFDug==
 | `npm audit` (backend + frontend) | **0 vulnerabilidades** | `npm run test:audit` |
 | securityheaders.com | ⏳ | |
 | Qualys SSL Labs | ⏳ | |
-| OWASP ZAP baseline | ⏳ `gh workflow run zap.yml -f url=https://<url>` (workflow `.github/workflows/zap.yml`) | |
+| OWASP ZAP baseline | **0 FAIL · 65 PASS · 6 WARN** (bajas/informativas). Se corrigieron *Cache-control* y *Storable Content* (`no-store` en API/HTML, `immutable` solo en /assets con hash) y *COEP* (`require-corp`). Restantes: *Sec-Fetch-Dest* (cabecera del navegador, no del servidor), *Base64 Disclosure* (hashes SRI y token CSRF, no son secretos), *Modern Web App* (informativa). Workflow `.github/workflows/zap.yml` | `entregables/zap/report_html.html` |
 | Pruebas de ataque en producción | ⏳ `npm run verify:prod -- https://<url>`: 20 pruebas (IDOR, CSRF, SQLi, XSS, cabeceras, HTTPS, cookies, errores, fuerza bruta → 429). Ver `evidencia-produccion.pdf` | |
 
 ## 4. Riesgos residuales
 
 1. **Bloqueo de cuenta como DoS:** un atacante puede bloquear temporalmente la cuenta de otro usuario con intentos fallidos. Se acota con bloqueo progresivo (máx. 60 min) y alertas; una mejora sería CAPTCHA tras N fallos.
 2. **El rate limit vive en memoria:** con varias instancias cada una cuenta por separado y se reinicia con el proceso. Mejora: un store compartido (Redis).
-3. **El plan gratuito de Render duerme el servicio** tras 15 min sin tráfico: el primer acceso tarda alrededor de 1 min. No es un riesgo de seguridad, pero sí de disponibilidad.
-4. **La llave de cifrado convive con la app:** si el servidor se compromete en ejecución, el atacante puede descifrar. Mejora: KMS/HSM con cifrado por sobre (*envelope encryption*).
-5. **MFA opcional:** cada usuario decide si lo activa (se muestra un aviso para activarlo). Mejora: hacerlo obligatorio para administradores. TOTP es vulnerable a phishing en tiempo real; WebAuthn/passkeys sería el siguiente paso.
-6. **Correo de recuperación:** sin `RESEND_API_KEY`, en producción no se envía el enlace (falla de forma segura, pero RF-06 queda sin canal de entrega). Configurar Resend o un SMTP para la demo.
-7. **`sequelize.sync()` como migración:** sirve para el laboratorio; en un equipo real se usarían migraciones versionadas (`sequelize-cli`).
+3. **IP del cliente detrás de Cloudflare:** se usa `True-Client-IP`, que fija Cloudflare (no falsificable desde el cliente; verificado: con `X-Forwarded-For`/`True-Client-IP` falsos el 6.º intento recibe 429). Si la plataforma cambiara ese comportamiento, el límite por IP dependería de `TRUST_PROXY_HOPS`.
+4. **El plan gratuito de Render duerme el servicio** tras 15 min sin tráfico: el primer acceso tarda alrededor de 1 min. No es un riesgo de seguridad, pero sí de disponibilidad.
+5. **La llave de cifrado convive con la app:** si el servidor se compromete en ejecución, el atacante puede descifrar. Mejora: KMS/HSM con cifrado por sobre (*envelope encryption*).
+6. **MFA opcional:** cada usuario decide si lo activa (se muestra un aviso para activarlo). Mejora: hacerlo obligatorio para administradores. TOTP es vulnerable a phishing en tiempo real; WebAuthn/passkeys sería el siguiente paso.
+7. **Correo de recuperación:** sin `RESEND_API_KEY`, en producción no se envía el enlace (falla de forma segura, pero RF-06 queda sin canal de entrega). Configurar Resend o un SMTP para la demo.
+8. **`sequelize.sync()` como migración:** sirve para el laboratorio; en un equipo real se usarían migraciones versionadas (`sequelize-cli`).
