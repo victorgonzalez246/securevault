@@ -1,0 +1,58 @@
+# A03/A08: pipeline CI. Nada llega a produccion sin pasar pruebas, auditoria y escaneo de secretos.
+# Render esta configurado con autoDeployTrigger: checksPass (despliega solo si este workflow pasa).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          # Contenedor efimero solo para pruebas; no es una credencial real
+          MYSQL_ROOT_PASSWORD: ci-only-root
+          MYSQL_DATABASE: securevault_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-only-root"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      DATABASE_URL: mysql://root:ci-only-root@127.0.0.1:3306/securevault_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+      - name: Instalar dependencias (reproducible, desde package-lock)
+        run: npm ci
+      - name: Auditar dependencias (falla con altas/criticas)
+        run: npm audit --audit-level=high
+      - name: Pruebas de seguridad
+        run: npm test
+      - name: Compilar frontend
+        run: npm run build
+      - name: Auditar dependencias del frontend
+        run: npm audit --audit-level=high --prefix client
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # revisa TODO el historial, no solo el ultimo commit
+      - name: Escaneo de secretos con gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

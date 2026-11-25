@@ -1,0 +1,29 @@
+# Blueprint de Render (despliegue reproducible). Los secretos (sync: false) se
+# ingresan en el panel de Render al crear el servicio; NUNCA van en este archivo.
+services:
+  - type: web
+    name: securevault
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm run db:migrate && npm start
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_SSL
+        value: "true"
+      - key: APP_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: ENCRYPTION_KEYS
+        sync: false
+      - key: ENCRYPTION_KEY_CURRENT
+        value: "1"
+      - key: ALERT_WEBHOOK_URL
+        sync: false
