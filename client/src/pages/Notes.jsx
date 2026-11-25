@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { api } from '../api.js';
-import { ErrorBox } from '../components.jsx';
+import { ErrorBox, Notice } from '../components.jsx';
 
 export default function Notes() {
   const [notes, setNotes] = useState(null);
   const [limit, setLimit] = useState(100);
   const [form, setForm] = useState({ title: '', content: '' });
   const [error, setError] = useState(null);
+  const [mfaOn, setMfaOn] = useState(true);
+  const location = useLocation();
 
   const load = () =>
     api('/notes').then((d) => {
@@ -17,6 +19,7 @@ export default function Notes() {
 
   useEffect(() => {
     load();
+    api('/mfa/status').then((s) => setMfaOn(s.enabled)).catch(() => {});
   }, []);
 
   const onCreate = async (e) => {
@@ -34,6 +37,13 @@ export default function Notes() {
   return (
     <>
       <h2>Mis notas</h2>
+      <Notice>{location.state?.notice}</Notice>
+      {!mfaOn && (
+        <article className="msg msg-warn">
+          <strong>Protege tu cuenta:</strong> activa la verificacion en dos pasos con Google Authenticator.{' '}
+          <Link to="/profile">Activar ahora</Link>
+        </article>
+      )}
       <ErrorBox error={error} />
       <details open={notes?.length === 0}>
         <summary role="button" className="outline">+ Nueva nota</summary>

@@ -31,6 +31,7 @@ flowchart LR
 | # | STRIDE | Amenaza | Mitigación implementada | Archivo |
 |---|---|---|---|---|
 | 1 | **S**poofing | Fuerza bruta / credential stuffing en login | Rate limit 5/15 min por IP (429), bloqueo progresivo por cuenta (1→60 min), Argon2id, alerta al 5.º fallo | `src/routes/auth.js` |
+| 1b | Spoofing | Contraseña robada (phishing, filtración) | **MFA TOTP con Google Authenticator**: sin el código del teléfono no hay sesión; anti-replay; 5 intentos por login; códigos de respaldo | `src/routes/mfa.js`, `src/services/mfa.js` |
 | 2 | Spoofing | Robo o fijación de sesión | Cookie `__Host-` HttpOnly/Secure/SameSite=Strict, `session.regenerate()` al autenticar, expiración 30 min / 8 h absoluta | `src/app.js`, `src/middleware/security.js` |
 | 3 | Spoofing | Enumeración de usuarios | Mensajes genéricos en login/registro/recuperación; hash ficticio para igualar tiempos | `src/routes/auth.js`, `src/crypto/password.js` |
 | 4 | **T**ampering | Modificación de notas cifradas en la BD | AES-256-GCM con tag de 16 bytes + AAD ligado a dueño y registro | `src/crypto/aes.js` |
@@ -55,7 +56,8 @@ flowchart LR
 3. **Atacante con acceso a un respaldo de la BD** → solo ve `v1.<iv>.<tag>.<datos>` y hashes `$argon2id$`; sin la llave (que está en Render, no en la BD) no puede leer nada.
 4. **Página maliciosa intenta enviar un POST con la sesión de la víctima** → sin cookie (SameSite=Strict), sin token CSRF y con `Origin` ajeno: 403.
 5. **Atacante intenta registrarse como admin** enviando `role` → 400 por campo no permitido.
-6. **Atacante copia el teléfono cifrado de la víctima a su propio registro** → el AAD no coincide y el descifrado falla.
+6. **Atacante conoce la contraseña (filtrada)** pero la víctima tiene MFA → queda en estado "MFA pendiente" sin acceso a ningún recurso; 5 códigos erróneos cancelan el intento y se dispara una alerta.
+7. **Atacante copia el teléfono cifrado de la víctima a su propio registro** → el AAD no coincide y el descifrado falla.
 
 ## Límites de negocio
 

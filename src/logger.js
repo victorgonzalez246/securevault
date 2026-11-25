@@ -16,6 +16,7 @@ export const logger = pino({
       '*.token',
       '*.phone',
       '*.content',
+      '*.secret',
     ],
     censor: '[REDACTED]',
   },

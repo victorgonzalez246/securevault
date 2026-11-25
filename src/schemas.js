@@ -48,5 +48,10 @@ export const profileSchema = z.object({
   phone: phone.optional().or(z.literal('').transform(() => null)),
 }).strict();
 
+// Codigo TOTP (6 digitos) o de respaldo (xxxxx-xxxxx)
+const mfaCode = z.string().trim().regex(/^(\d{6}|[0-9a-fA-F]{5}-?[0-9a-fA-F]{5})$/, 'Codigo invalido');
+export const mfaCodeSchema = z.object({ code: mfaCode }).strict();
+export const mfaDisableSchema = z.object({ password: z.string().min(1).max(128), code: mfaCode }).strict();
+
 export const userIdParam = z.object({ id: z.coerce.number().int().positive() });
 export const roleSchema = z.object({ role: z.enum(['user', 'admin']) }).strict();

@@ -11,7 +11,7 @@ export function adminRouter() {
 
   router.get('/users', async (req, res) => {
     const users = await User.findAll({
-      attributes: ['id', 'email', 'name', 'role', 'failedAttempts', 'lockedUntil', 'createdAt'], // sin hashes ni datos cifrados
+      attributes: ['id', 'email', 'name', 'role', 'totpEnabled', 'failedAttempts', 'lockedUntil', 'createdAt'], // sin hashes ni datos cifrados
       order: [['id', 'ASC']],
     });
     res.json({ users });

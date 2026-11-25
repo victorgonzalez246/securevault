@@ -7,11 +7,14 @@ import { hashPassword, verifyPassword, burnPasswordTime } from '../crypto/passwo
 import { encrypt } from '../crypto/aes.js';
 import { generateToken, hashToken } from '../crypto/tokens.js';
 import { validate, issueCsrfToken, requireAuth } from '../middleware/security.js';
-import { registerSchema, loginSchema, forgotSchema, resetSchema } from '../schemas.js';
+import { registerSchema, loginSchema, forgotSchema, resetSchema, mfaCodeSchema } from '../schemas.js';
 import { audit, alert } from '../services/audit.js';
+import { verifySecondFactor } from '../services/mfa.js';
 import { sendPasswordResetEmail } from '../services/mailer.js';
 
 const LOCK_THRESHOLD = 5;
+const MFA_PENDING_TTL_MS = 5 * 60 * 1000;
+const MFA_MAX_TRIES = 5;
 const RESET_TTL_MS = 15 * 60 * 1000;
 const GENERIC_LOGIN_ERROR = 'Correo o contrasena incorrectos, o cuenta bloqueada temporalmente';
 
@@ -99,11 +102,61 @@ export function authRouter() {
 
     await user.update({ failedAttempts: 0, lockedUntil: null });
     await regenerate(req); // A07: nuevo ID de sesion al autenticar (evita fijacion de sesion)
+
+    if (user.totpEnabled) {
+      // MFA: la contrasena es correcta pero la sesion AUN NO esta autenticada.
+      req.session.mfaPending = { userId: user.id, at: Date.now(), tries: 0 };
+      const csrfToken = issueCsrfToken(req);
+      await audit(req, 'login_password_ok_mfa_pending', {}, user.id);
+      return res.json({ mfaRequired: true, csrfToken });
+    }
+
     req.session.userId = user.id;
     req.session.authAt = Date.now();
     const csrfToken = issueCsrfToken(req);
-    await audit(req, 'login_ok', {}, user.id);
+    await audit(req, 'login_ok', { mfa: false }, user.id);
     res.json({ user: publicUser(user), csrfToken });
+  });
+
+  // MFA paso 2: codigo de Google Authenticator (o de respaldo). Maximo 5 intentos por
+  // login y 10 por IP cada 15 min; despues hay que volver a ingresar la contrasena.
+  const mfaLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: async (req, res) => {
+      await audit(req, 'mfa_rate_limited', {}, req.session?.mfaPending?.userId ?? null);
+      res.status(429).json({ error: 'Demasiados intentos. Intenta de nuevo en unos minutos.' });
+    },
+  });
+
+  router.post('/mfa', mfaLimiter, validate(mfaCodeSchema), async (req, res) => {
+    const pending = req.session.mfaPending;
+    if (!pending || Date.now() - pending.at > MFA_PENDING_TTL_MS) {
+      delete req.session.mfaPending;
+      return res.status(401).json({ error: 'La verificacion expiro. Inicia sesion de nuevo.' });
+    }
+    const user = await User.findByPk(pending.userId);
+    const method = await verifySecondFactor(user, req.valid.body.code);
+    if (!method) {
+      pending.tries += 1;
+      await audit(req, 'mfa_fail', { tries: pending.tries }, pending.userId);
+      if (pending.tries >= MFA_MAX_TRIES) {
+        delete req.session.mfaPending;
+        await alert(req, 'Multiples codigos MFA incorrectos', { userId: pending.userId });
+        return res.status(401).json({ error: 'Demasiados codigos incorrectos. Inicia sesion de nuevo.' });
+      }
+      return res.status(401).json({ error: 'Codigo incorrecto' });
+    }
+
+    await regenerate(req); // nuevo ID de sesion tambien al completar el segundo factor
+    req.session.userId = user.id;
+    req.session.authAt = Date.now();
+    const csrfToken = issueCsrfToken(req);
+    await audit(req, 'login_ok', { mfa: true, method }, user.id);
+    res.json({ user: publicUser(user), csrfToken, ...(method === 'recovery' && { notice: 'Usaste un codigo de respaldo: ya no es valido.' }) });
   });
 
   // RF-02: cierre de sesion que invalida la sesion en el servidor

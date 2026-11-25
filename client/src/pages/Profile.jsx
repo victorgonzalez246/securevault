@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { ErrorBox, Notice } from '../components.jsx';
+import MfaSettings from './MfaSettings.jsx';
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -43,7 +44,8 @@ export default function Profile() {
   if (!profile) return error ? <ErrorBox error={error} /> : <p aria-busy="true">Cargando...</p>;
 
   return (
-    <article className="narrow">
+    <div className="narrow">
+    <article>
       <h2>Mi perfil</h2>
       <Notice>{msg}</Notice>
       <ErrorBox error={error} />
@@ -62,5 +64,7 @@ export default function Profile() {
         <button type="submit">Guardar</button>
       </form>
     </article>
+    <MfaSettings />
+    </div>
   );
 }

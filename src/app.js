@@ -18,6 +18,7 @@ import { authRouter } from './routes/auth.js';
 import { notesRouter } from './routes/notes.js';
 import { profileRouter } from './routes/profile.js';
 import { adminRouter } from './routes/admin.js';
+import { mfaRouter } from './routes/mfa.js';
 
 const CLIENT_DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'client', 'dist');
 const SESSION_TTL_MS = 30 * 60 * 1000;
@@ -126,6 +127,7 @@ export function createApp() {
   app.use('/api/notes', notesRouter());
   app.use('/api/profile', profileRouter());
   app.use('/api/admin', adminRouter());
+  app.use('/api/mfa', mfaRouter());
   app.use('/api', (req, res, next) => next(new HttpError(404, 'Recurso no encontrado')));
 
   // SPA: cualquier otra ruta GET devuelve index.html

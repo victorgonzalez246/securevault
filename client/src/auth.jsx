@@ -15,10 +15,18 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Devuelve { mfaRequired: true } si la cuenta tiene verificacion en dos pasos
   const login = useCallback(async (email, password) => {
     const d = await api('/auth/login', { method: 'POST', body: { email, password } });
+    if (d.mfaRequired) return { mfaRequired: true };
     setUser(d.user);
-    return d.user;
+    return { user: d.user };
+  }, []);
+
+  const verifyMfa = useCallback(async (code) => {
+    const d = await api('/auth/mfa', { method: 'POST', body: { code } });
+    setUser(d.user);
+    return d;
   }, []);
 
   const logout = useCallback(async () => {
@@ -30,7 +38,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, verifyMfa, logout }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

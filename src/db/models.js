@@ -17,6 +17,12 @@ export const User = sequelize.define('User', {
   phoneEnc: { type: DataTypes.TEXT, allowNull: true },
   failedAttempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   lockedUntil: { type: DataTypes.DATE, allowNull: true },
+  // MFA (TOTP / Google Authenticator). El secreto se guarda cifrado con AES-256-GCM.
+  totpEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  totpSecretEnc: { type: DataTypes.TEXT, allowNull: true },
+  totpPendingEnc: { type: DataTypes.TEXT, allowNull: true }, // secreto en configuracion, aun no confirmado
+  totpLastStep: { type: DataTypes.INTEGER, allowNull: true }, // anti-replay: ultimo paso de 30 s usado
+  recoveryCodes: { type: DataTypes.JSON, allowNull: true }, // SHA-256 de los codigos de respaldo
 }, { tableName: 'users' });
 
 export const Note = sequelize.define('Note', {
@@ -58,3 +64,4 @@ AuditLog.belongsTo(User, { foreignKey: 'userId', constraints: true, onDelete: 'S
 
 export const noteAad = (note, field) => `note:${note.ownerId}:${note.id}:${field}`;
 export const phoneAad = (userId) => `user:${userId}:phone`;
+export const totpAad = (userId) => `user:${userId}:totp`;

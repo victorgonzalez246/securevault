@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { ErrorBox } from '../components.jsx';
 
-const ALERT_EVENTS = new Set(['login_fail', 'login_blocked', 'login_rate_limited', 'access_denied', 'security_alert', 'role_change']);
+const ALERT_EVENTS = new Set(['mfa_fail', 'mfa_rate_limited', 'mfa_disabled', 'login_fail', 'login_blocked', 'login_rate_limited', 'access_denied', 'security_alert', 'role_change']);
 
 export default function Admin() {
   const { user } = useAuth();
@@ -42,7 +42,7 @@ export default function Admin() {
       <h3>Usuarios ({users.length})</h3>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Correo</th><th>Nombre</th><th>Rol</th><th>Fallos</th><th>Bloqueado hasta</th></tr></thead>
+          <thead><tr><th>ID</th><th>Correo</th><th>Nombre</th><th>Rol</th><th>MFA</th><th>Fallos</th><th>Bloqueado hasta</th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
@@ -57,6 +57,7 @@ export default function Admin() {
                     </select>
                   )}
                 </td>
+                <td>{u.totpEnabled ? <span className="badge badge-ok">activa</span> : <span className="badge">no</span>}</td>
                 <td>{u.failedAttempts}</td>
                 <td>{u.lockedUntil && new Date(u.lockedUntil) > new Date() ? new Date(u.lockedUntil).toLocaleString() : '-'}</td>
               </tr>
