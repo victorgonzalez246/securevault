@@ -63,7 +63,7 @@ Señala: `$argon2id$...` y `v1.<iv>.<tag>.<datos>`, ilegibles sin la llave, que 
 ## 7. Configuración y verificación (1.5 min)
 - **securityheaders.com** → calificación A/A+.
 - **SSL Labs** → calificación A.
-- `npm run verify:prod -- $u` → 20/20 OK (si no hiciste el ataque 2 hace menos de 15 min).
+- `npm run verify:prod -- $u` → 22/22 OK (si no hiciste el ataque 2 hace menos de 15 min).
 - Reporte de **OWASP ZAP** (de GitHub Actions).
 
 ## 8. Cierre (30 s)

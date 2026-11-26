@@ -1,24 +1,24 @@
 # Informe de seguridad — SecureVault
 
-**URL de producción:** `https://<completar>.onrender.com`
+**URL de producción:** `https://securevault-w3bn.onrender.com`
 **Repositorio:** https://github.com/victorgonzalez246/securevault (privado)
 **Modalidad:** trabajo individual (victorgonzalez246)
 
-> Las secciones marcadas con ⏳ se completan con capturas **después del despliegue**. Todo lo demás ya está verificado con las pruebas automáticas (`npm test`: 36/36) y con pruebas manuales en local.
+> Las secciones marcadas con Sin evidencia adjunta — se completan con capturas **después del despliegue**. Todo lo demás ya está verificado con las pruebas automáticas (`npm test`: 36/36) y con pruebas manuales en local.
 
 ## 1. Mapa OWASP Top 10:2025 → mitigación → evidencia
 
 | Categoría | Mitigación en SecureVault | Evidencia |
 |---|---|---|
-| **A01 Broken Access Control** (incl. SSRF) | `requireAuth` / `requireRole('admin')` en el servidor; denegación por defecto; `WHERE id=? AND owner_id=?` en todas las consultas de notas; UUID no adivinables; CSRF (token + `Origin`); lista blanca de destinos salientes (`safeFetch`) | Prueba *"el usuario B NO puede leer, editar ni borrar la nota del usuario A"* → **404** en GET/PUT/DELETE + eventos `access_denied`; usuario normal en `/api/admin/users` → **404** (la ruta privilegiada se oculta en vez de confirmar su existencia con un 403); sin token CSRF → **403**. Código: `src/routes/notes.js`, `src/middleware/security.js`, `src/services/http.js` |
-| **A02 Security Misconfiguration** | helmet con CSP estricta, HSTS, `nosniff`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `Permissions-Policy`; `X-Powered-By` desactivado; CORS solo a `APP_ORIGIN`; `NODE_ENV=production`; sin stack traces; sin rutas de depuración; `trust proxy 1` | Prueba *"envía cabeceras de seguridad y oculta X-Powered-By"*. ⏳ Captura de **securityheaders.com** (objetivo: A o A+) |
+| **A01 Broken Access Control** (incl. SSRF) | `requireAuth` / `requireRole('admin')` en el servidor; denegación por defecto; `WHERE id=? AND owner_id=?` en todas las consultas de notas; UUID no adivinables; CSRF (token + `Origin`); lista blanca de destinos salientes (`safeFetch`) | Prueba *"el usuario B NO puede leer, editar ni borrar la nota del usuario A"* → **404** en GET/PUT/DELETE + eventos `access_denied`; usuario normal en `/api/admin/users` → **404**, comprobado en producción el 26 de noviembre; sin token CSRF → **403**. Código: `src/routes/notes.js`, `src/middleware/security.js`, `src/services/http.js` |
+| **A02 Security Misconfiguration** | helmet con CSP estricta, HSTS, `nosniff`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `Permissions-Policy`; `X-Powered-By` desactivado; CORS solo a `APP_ORIGIN`; `NODE_ENV=production`; sin stack traces; sin rutas de depuración; `trust proxy 1` | Prueba *"envía cabeceras de seguridad y oculta X-Powered-By"*. Sin evidencia adjunta — Captura de **securityheaders.com** (objetivo: A o A+) |
 | **A03 Software Supply Chain Failures** | `package-lock.json` versionado; `npm ci` en CI y Render; `npm audit --audit-level=high` bloquea el pipeline; Dependabot (npm ×2 + Actions); `overrides` para corregir `uuid` transitivo; dependencias mínimas | `npm audit` → **found 0 vulnerabilities** (backend y frontend). Archivos `.github/dependabot.yml` y `.github/workflows/ci.yml` |
-| **A04 Cryptographic Failures** | Argon2id (19 MiB, t=2, p=1); AES-256-GCM con IV aleatorio de 12 B y tag de 16 B + AAD; llaves versionadas en el gestor de secretos de Render; tokens con `randomBytes(32)` + SHA-256; TLS obligatorio (301 a HTTPS + HSTS); cookie `__Host-` Secure; TLS verificado hacia la BD | Prueba *"contraseñas como $argon2id$ y notas/teléfono cifrados"* y `test/crypto.test.js` (IV único en 200 cifrados, detección de manipulación, AAD). ⏳ Captura de la BD en Workbench/TiDB y reporte de **SSL Labs** |
-| **A05 Injection** (incl. XSS) | Sequelize (consultas parametrizadas); validación zod `.strict()` en toda entrada; React escapa la salida (sin `dangerouslySetInnerHTML`); CSP `script-src 'self'`, `script-src-attr 'none'` | Pruebas: `' OR 1=1 --` en login → **401**; inyección en el id → **400**; `<script>` se guarda y devuelve como texto JSON. ⏳ Captura de la nota `<script>alert(1)</script>` mostrada como texto |
+| **A04 Cryptographic Failures** | Argon2id (19 MiB, t=2, p=1); AES-256-GCM con IV aleatorio de 12 B y tag de 16 B + AAD; llaves versionadas en el gestor de secretos de Render; tokens con `randomBytes(32)` + SHA-256; TLS obligatorio (301 a HTTPS + HSTS); cookie `__Host-` Secure; TLS verificado hacia la BD | Prueba *"contraseñas como $argon2id$ y notas/teléfono cifrados"* y `test/crypto.test.js` (IV único en 200 cifrados, detección de manipulación, AAD). Sin evidencia adjunta — Captura de la BD en Workbench/TiDB y reporte de **SSL Labs** |
+| **A05 Injection** (incl. XSS) | Sequelize (consultas parametrizadas); validación zod `.strict()` en toda entrada; React escapa la salida (sin `dangerouslySetInnerHTML`); CSP `script-src 'self'`, `script-src-attr 'none'` | Pruebas: `' OR 1=1 --` en login → **401**; inyección en el id → **400**; `<script>` se guarda y devuelve como texto JSON. Sin evidencia adjunta — Captura de la nota `<script>alert(1)</script>` mostrada como texto |
 | **A06 Insecure Design** | Modelo de amenazas STRIDE; límites de negocio (100 notas, 10 000 caracteres, 20 KB por petición); casos de abuso documentados | `docs/threat-model.md` (diagrama + 17 amenazas + 6 casos de abuso); prueba *"rechaza notas mayores a 10 000 caracteres"* |
 | **A07 Authentication Failures** | Rate limit 5/15 min por IP en login; bloqueo progresivo por cuenta; mensajes genéricos; igualación de tiempos; `session.regenerate()`; expiración 30 min / 8 h; logout que destruye la sesión; política de contraseña; recuperación de un solo uso; **MFA obligatoria con TOTP (Google Authenticator)** desde la creación de la cuenta: el servidor bloquea notas, perfil y admin (403 `MFA_ENROLLMENT_REQUIRED`) hasta configurarla; secreto cifrado AES-256-GCM, anti-replay, 5 intentos por login, 8 códigos de respaldo guardados como SHA-256 | Pruebas: 5 fallos → **429** en el 6.º; cuenta bloqueada aunque cambie de IP; mismo mensaje para correo inexistente o contraseña incorrecta; logout invalida la sesión; token de recuperación no reutilizable; `test/mfa.test.js` (8 pruebas): cuenta recién creada bloqueada hasta activar Google Authenticator; admin sin MFA no entra al panel; con MFA activo la contraseña sola **no** da acceso (401 en /api/notes), código incorrecto → 401, el mismo código no se reutiliza (replay), 5 fallos cancelan el login, código de respaldo de un solo uso, desactivar exige contraseña + código |
 | **A08 Software or Data Integrity Failures** | Sin deserialización de datos no confiables (solo `express.json`, 20 KB); sesiones de servidor en vez de JWT (no hay algoritmos que confundir); GCM verifica la integridad de los datos cifrados; **SRI (sha384)** en todos los JS/CSS que sirve la app (`client/scripts/add-sri.mjs` tras el build); sin recursos de terceros; CI ejecuta pruebas antes del deploy (`autoDeployTrigger: checksPass`); gitleaks | `dist/index.html` generado (atributos `integrity="sha384-..."` en `<script>` y `<link>`); `.github/workflows/ci.yml`; `render.yaml` |
-| **A09 Security Logging and Alerting Failures** | pino en JSON; eventos `login_ok`, `login_fail`, `login_blocked`, `login_rate_limited`, `access_denied`, `role_change`, `password_reset_*`, `sensitive_data_revealed`; redacción de cookie/password/token/phone/content; alerta al 5.º fallo consecutivo (log `warn` + bitácora + webhook opcional) | Muestra de log JSON (abajo); panel **Administración → Bitácora**. ⏳ Captura del panel |
+| **A09 Security Logging and Alerting Failures** | pino en JSON; eventos `login_ok`, `login_fail`, `login_blocked`, `login_rate_limited`, `access_denied`, `role_change`, `password_reset_*`, `sensitive_data_revealed`; redacción de cookie/password/token/phone/content; alerta al 5.º fallo consecutivo (log `warn` + bitácora + webhook opcional) | Muestra de log JSON (abajo); panel **Administración → Bitácora**. Sin evidencia adjunta — Captura del panel |
 | **A10 Mishandling of Exceptional Conditions** | Manejador global con respuesta genérica + `requestId`; detalle solo en el log; *fail closed* (sin llaves válidas o sin BD el servidor no arranca; si falla el descifrado se responde 500); `unhandledRejection` y `uncaughtException` → log fatal y reinicio limpio; timeouts (servidor 30 s, conexión a BD 10 s, `max_execution_time` 10 s, salientes 5 s) | Prueba *"un dato manipulado en la BD produce error genérico (sin stack)"* → **500** `{"error":"Ocurrio un error interno...","requestId":"..."}`; JSON malformado → **400** genérico |
 
 ### Muestra de log (A09)
@@ -58,15 +58,15 @@ v1./iwu7UahhC7UDqAu.+6fTpGRLKiZ1sDu8pMoHAw==.UJy7KfFDug==
 - **Si la llave se filtra**, hay que rotarla de inmediato.
 - **Rotación sin pérdida (implementada, bonificación):** cada cifrado lleva su versión (`v1.`, `v2.`…) y la app acepta varias llaves (`ENCRYPTION_KEYS=1:...,2:...`). Se agrega la llave nueva como actual; lo nuevo se cifra con ella y lo viejo se sigue leyendo. Luego `npm run rotate-keys` re-cifra todo dentro de **una transacción** (si falla, se revierte), y por último se retira la llave vieja. Probado en `test/crypto.test.js` (*"soporta rotación"*).
 
-## 3. Resultados de las herramientas ⏳
+## 3. Resultados de las herramientas Sin evidencia adjunta —
 
 | Herramienta | Resultado | Captura |
 |---|---|---|
 | `npm audit` (backend + frontend) | **0 vulnerabilidades** | `npm run test:audit` |
-| securityheaders.com | ⏳ | |
-| Qualys SSL Labs | ⏳ | |
+| securityheaders.com | Sin evidencia adjunta — | |
+| Qualys SSL Labs | Sin evidencia adjunta — | |
 | OWASP ZAP baseline | **0 FAIL · 65 PASS · 6 WARN** (bajas/informativas). Se corrigieron *Cache-control* y *Storable Content* (`no-store` en API/HTML, `immutable` solo en /assets con hash) y *COEP* (`require-corp`). Restantes: *Sec-Fetch-Dest* (cabecera del navegador, no del servidor), *Base64 Disclosure* (hashes SRI y token CSRF, no son secretos), *Modern Web App* (informativa). Workflow `.github/workflows/zap.yml` | `entregables/zap/report_html.html` |
-| Pruebas de ataque en producción | ⏳ `npm run verify:prod -- https://<url>`: 20 pruebas (IDOR, CSRF, SQLi, XSS, cabeceras, HTTPS, cookies, errores, fuerza bruta → 429). Ver `evidencia-produccion.pdf` | |
+| Pruebas de ataque en producción | Sin evidencia adjunta — `npm run verify:prod -- https://<url>`: 22 pruebas (IDOR, CSRF, SQLi, XSS, cabeceras, HTTPS, cookies, errores, fuerza bruta → 429). Ver `evidencia-produccion.pdf` | |
 
 ## 4. Riesgos residuales
 
@@ -78,3 +78,14 @@ v1./iwu7UahhC7UDqAu.+6fTpGRLKiZ1sDu8pMoHAw==.UJy7KfFDug==
 6. **TOTP y phishing en tiempo real:** la MFA es obligatoria para todas las cuentas, pero un código TOTP puede ser capturado por un sitio de phishing que lo reenvíe en segundos. El siguiente paso sería WebAuthn/passkeys.
 7. **Correo de recuperación:** sin `RESEND_API_KEY`, en producción no se envía el enlace (falla de forma segura, pero RF-06 queda sin canal de entrega). Configurar Resend o un SMTP para la demo.
 8. **`sequelize.sync()` como migración:** sirve para el laboratorio; en un equipo real se usarían migraciones versionadas (`sequelize-cli`).
+
+
+## Revisión de entrega — 26 de noviembre de 2026
+
+Se ejecutaron 36 pruebas locales con resultado satisfactorio y la compilación del frontend pasó. La evidencia de producción adjunta se actualizó el 26 de noviembre. Las calificaciones de servicios externos y el envío real de recuperación requieren verificación con acceso a producción. No se consideran aprobados por ausencia de evidencia. Los códigos de respaldo se han redactado del documento de entrega.
+
+
+
+## Evidencia TLS actualizada
+
+SSL Labs completó el análisis el 26 de noviembre de 2026. Ambos endpoints (216.24.57.16 y 216.24.57.18) obtuvieron A+, sin advertencias. Resultado oficial conservado en entregables/ssl-labs-2026-11-26.json. SecurityHeaders respondió HTTP 403 y su calificación no pudo comprobarse. El correo de recuperación sigue pendiente de comprobar en producción.

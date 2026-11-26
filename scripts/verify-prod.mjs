@@ -47,7 +47,7 @@ class Client {
     let json = null;
     try { json = JSON.parse(text); } catch { /* no JSON */ }
     if (json?.csrfToken) this.csrf = json.csrfToken;
-    log.push(`${method} ${path} -> ${res.status} ${text.slice(0, 160).replace(/\s+/g, ' ')}`);
+    log.push(`${method} ${path} -> ${res.status} ${text.replace(/"recoveryCodes":\[[^\]]*\]/g, '"recoveryCodes":"<redactado>"').replace(/"qr":"[^"]+"/g, '"qr":"<redactado>"').slice(0, 160).replace(/\s+/g, ' ')}`);
     return { status: res.status, headers: res.headers, json, text, setCookie: res.headers.getSetCookie() };
   }
   async init() { await this.req('GET', '/api/csrf'); return this; }

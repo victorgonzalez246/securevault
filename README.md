@@ -1,10 +1,15 @@
 # SecureVault
 
+**Aplicación desplegada:** https://securevault-w3bn.onrender.com
+
+**Repositorio:** https://github.com/victorgonzalez246/securevault
+
+
 Aplicación web para guardar **notas privadas** y **datos personales sensibles** con cifrado autenticado, construida para el laboratorio *Sistema seguro en Node.js: OWASP Top 10:2025, cifrado, hash y despliegue a producción*.
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React 19 + Vite + React Router (Pico CSS desde CDN con SRI) |
+| Frontend | React 19 + Vite + React Router, estilos propios y SRI en recursos compilados |
 | Backend | Node.js 24 LTS + Express 5 |
 | Base de datos | MySQL 8 (local) / TiDB Cloud Starter, compatible con MySQL (producción) mediante **Sequelize** |
 | Seguridad | helmet (CSP), express-rate-limit, zod, argon2 (Argon2id), `node:crypto` (AES-256-GCM), express-session |
